@@ -14,8 +14,12 @@
     <!-- Main screen -->
     <string name="status_title">状态</string>
     <string name="btn_notification_access">开启通知使用权</string>
-    <string name="switch_forwarding">转发微信消息到 Android Auto</string>
-    <string name="switch_group_split">拆分群消息的发送者姓名</string>
+    <string name="switch_forwarding">转发消息到 Android Auto</string>
+    <string name="switch_group_split">拆分群消息的发送者姓名（微信）</string>
+    <string name="sources_title">转发来源</string>
+    <string name="app_wechat">微信（个人资料）</string>
+    <string name="app_teams">Microsoft Teams（工作资料）</string>
+    <string name="work_profile_note">提示：通知监听在工作/个人资料之间相互隔离。微信在个人资料、Teams 在工作资料时，需要在<b>两个资料中都安装并启用本应用</b>：个人资料转发微信，工作资料转发 Teams。</string>
     <string name="btn_test">发送测试消息</string>
     <string name="recent_title">最近转发的消息</string>
     <string name="btn_clear">清空</string>

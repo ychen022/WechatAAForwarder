@@ -10,6 +10,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -83,6 +84,16 @@ public class MainActivity extends AppCompatActivity {
         swGroupSplit.setOnCheckedChangeListener((b, checked) ->
                 Prefs.setGroupSplitEnabled(this, checked));
 
+        CheckBox cbWeChat = findViewById(R.id.cbWeChat);
+        cbWeChat.setChecked(Prefs.isAppEnabled(this, SupportedApp.WECHAT));
+        cbWeChat.setOnCheckedChangeListener((b, checked) ->
+                Prefs.setAppEnabled(this, SupportedApp.WECHAT, checked));
+
+        CheckBox cbTeams = findViewById(R.id.cbTeams);
+        cbTeams.setChecked(Prefs.isAppEnabled(this, SupportedApp.TEAMS));
+        cbTeams.setOnCheckedChangeListener((b, checked) ->
+                Prefs.setAppEnabled(this, SupportedApp.TEAMS, checked));
+
         maybeRequestPostNotifications();
     }
 
@@ -90,8 +101,8 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         IntentFilter filter = new IntentFilter();
-        filter.addAction(WeChatNotificationListenerService.ACTION_STATE_CHANGED);
-        filter.addAction(WeChatNotificationListenerService.ACTION_MESSAGE_FORWARDED);
+        filter.addAction(MessageNotificationListenerService.ACTION_STATE_CHANGED);
+        filter.addAction(MessageNotificationListenerService.ACTION_MESSAGE_FORWARDED);
         LocalBroadcastManager.getInstance(this).registerReceiver(updateReceiver, filter);
         updateStatus();
         refreshList();
@@ -125,12 +136,14 @@ public class MainActivity extends AppCompatActivity {
         String body = getString(R.string.test_body);
 
         Conversation conv = store.getOrCreate("__test__:" + sender, sender, false);
+        conv.appLabel = SupportedApp.WECHAT.label;
         conv.lastBody = body;
         conv.lastPostTime = now;
         conv.addMessage(new Conversation.Msg(sender, body, now, false));
 
         new CarNotificationForwarder(this).post(conv);
-        store.addRecent(new ForwardedMessage(sender, sender, body, now, false));
+        store.addRecent(new ForwardedMessage(
+                SupportedApp.WECHAT.label, sender, sender, body, now, false));
         refreshList();
 
         int msg = hasPostNotificationsPermission()
@@ -148,7 +161,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void updateStatus() {
         boolean access = isNotificationAccessGranted();
-        boolean listener = WeChatNotificationListenerService.isConnected();
+        boolean listener = MessageNotificationListenerService.isConnected();
         boolean forwarding = Prefs.isForwardingEnabled(this);
         boolean post = hasPostNotificationsPermission();
 

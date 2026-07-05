@@ -45,7 +45,7 @@ public class NotificationReplyReceiver extends BroadcastReceiver {
             }
         } else if (ACTION_MARK_READ.equals(action)) {
             if (conv != null) {
-                WeChatNotificationListenerService.cancelWeChatNotification(conv.wechatSbnKey);
+                MessageNotificationListenerService.cancelSourceNotification(conv.wechatSbnKey);
                 conv.clearMessages();
             }
             forwarder.cancel(notifId);
@@ -53,7 +53,7 @@ public class NotificationReplyReceiver extends BroadcastReceiver {
 
         // Let the UI refresh if it is open.
         LocalBroadcastManager.getInstance(context).sendBroadcast(
-                new Intent(WeChatNotificationListenerService.ACTION_MESSAGE_FORWARDED));
+                new Intent(MessageNotificationListenerService.ACTION_MESSAGE_FORWARDED));
     }
 
     private CharSequence getReplyText(Intent intent) {

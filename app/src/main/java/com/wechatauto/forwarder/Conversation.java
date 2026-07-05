@@ -33,6 +33,7 @@ public class Conversation {
     public final String key;
     public String title;
     public boolean group;
+    public String appLabel;
     public final int notificationId;
 
     private final Deque<Msg> messages = new ArrayDeque<>();

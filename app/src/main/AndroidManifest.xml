@@ -32,7 +32,7 @@
         </activity>
 
         <service
-            android:name=".WeChatNotificationListenerService"
+            android:name=".MessageNotificationListenerService"
             android:exported="true"
             android:label="@string/listener_label"
             android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">

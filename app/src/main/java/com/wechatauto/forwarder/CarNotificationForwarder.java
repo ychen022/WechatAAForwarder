@@ -52,9 +52,10 @@ public class CarNotificationForwarder {
 
         NotificationCompat.MessagingStyle style = new NotificationCompat.MessagingStyle(self);
         style.setGroupConversation(conv.group);
-        if (conv.group) {
-            style.setConversationTitle(conv.title);
-        }
+        String displayTitle = (conv.appLabel != null && !conv.appLabel.isEmpty())
+                ? conv.appLabel + " · " + conv.title
+                : conv.title;
+        style.setConversationTitle(displayTitle);
 
         for (Conversation.Msg m : conv.snapshot()) {
             Person person = m.fromSelf

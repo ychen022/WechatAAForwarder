@@ -37,8 +37,10 @@ public class RecentMessagesAdapter extends RecyclerView.Adapter<RecentMessagesAd
     @Override
     public void onBindViewHolder(@NonNull VH holder, int position) {
         ForwardedMessage m = items.get(position);
-        String title = m.group ? (m.conversationTitle + " · " + m.sender) : m.conversationTitle;
-        holder.title.setText(title);
+        String who = m.group ? (m.conversationTitle + " · " + m.sender) : m.conversationTitle;
+        String prefix = (m.sourceLabel == null || m.sourceLabel.isEmpty())
+                ? "" : (m.sourceLabel + " · ");
+        holder.title.setText(prefix + who);
         holder.body.setText(m.body);
         holder.time.setText(df.format(new Date(m.timestamp)));
     }

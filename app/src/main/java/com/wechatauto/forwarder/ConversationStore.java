@@ -85,6 +85,7 @@ public class ConversationStore {
             for (int i = 0; i < arr.length(); i++) {
                 JSONObject o = arr.getJSONObject(i);
                 out.add(new ForwardedMessage(
+                        o.optString("app"),
                         o.optString("title"),
                         o.optString("sender"),
                         o.optString("body"),
@@ -102,6 +103,7 @@ public class ConversationStore {
         for (ForwardedMessage m : list) {
             JSONObject o = new JSONObject();
             try {
+                o.put("app", m.sourceLabel);
                 o.put("title", m.conversationTitle);
                 o.put("sender", m.sender);
                 o.put("body", m.body);

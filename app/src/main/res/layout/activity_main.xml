@@ -44,6 +44,39 @@
         android:text="@string/switch_group_split"
         android:textSize="15sp" />
 
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="@string/sources_title"
+        android:textStyle="bold"
+        android:textSize="15sp" />
+
+    <CheckBox
+        android:id="@+id/cbWeChat"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="44dp"
+        android:text="@string/app_wechat"
+        android:textSize="15sp" />
+
+    <CheckBox
+        android:id="@+id/cbTeams"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="44dp"
+        android:text="@string/app_teams"
+        android:textSize="15sp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="4dp"
+        android:text="@string/work_profile_note"
+        android:textColor="?android:attr/textColorSecondary"
+        android:textSize="12sp" />
+
     <Button
         android:id="@+id/btnTest"
         android:layout_width="match_parent"

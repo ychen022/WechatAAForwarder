@@ -7,17 +7,22 @@ import android.service.notification.StatusBarNotification;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 /**
- * Listens to every posted notification, keeps only WeChat message notifications,
- * and re-posts them as Android Auto messaging notifications in real time.
+ * Listens to every posted notification, keeps only notifications from
+ * {@link SupportedApp}s, and re-posts them as Android Auto messaging
+ * notifications in real time.
+ *
+ * Because third-party notification listeners are isolated per Android profile,
+ * install and enable this app in each profile whose apps you want relayed
+ * (e.g. personal profile for WeChat, work profile for Teams).
  */
-public class WeChatNotificationListenerService extends NotificationListenerService {
+public class MessageNotificationListenerService extends NotificationListenerService {
 
     public static final String ACTION_STATE_CHANGED =
             "com.wechatauto.forwarder.STATE_CHANGED";
     public static final String ACTION_MESSAGE_FORWARDED =
             "com.wechatauto.forwarder.MESSAGE_FORWARDED";
 
-    private static volatile WeChatNotificationListenerService instance;
+    private static volatile MessageNotificationListenerService instance;
     private static volatile boolean connected = false;
 
     public static boolean isConnected() {
@@ -53,14 +58,11 @@ public class WeChatNotificationListenerService extends NotificationListenerServi
 
     @Override
     public void onNotificationPosted(StatusBarNotification sbn) {
-        if (sbn == null
-                || !WeChatMessageParser.WECHAT_PACKAGE.equals(sbn.getPackageName())
-                || !Prefs.isForwardingEnabled(this)) {
+        if (sbn == null || !Prefs.isForwardingEnabled(this)) {
             return;
         }
 
-        WeChatMessageParser.Parsed parsed =
-                WeChatMessageParser.parse(sbn, Prefs.isGroupSplitEnabled(this));
+        MessageParser.Parsed parsed = MessageParser.parse(this, sbn);
         if (parsed == null) {
             return;
         }
@@ -68,13 +70,14 @@ public class WeChatNotificationListenerService extends NotificationListenerServi
         ConversationStore store = ConversationStore.get(this);
         Conversation conv = store.getOrCreate(
                 parsed.conversationKey, parsed.conversationTitle, parsed.group);
+        conv.appLabel = parsed.app.label;
 
         // Always refresh the reply hooks with the latest notification.
         conv.wechatReplyIntent = parsed.replyIntent;
         conv.wechatReplyRemoteInput = parsed.replyRemoteInput;
         conv.wechatSbnKey = parsed.sbnKey;
 
-        // De-duplicate WeChat's repeated posts of the same latest message.
+        // De-duplicate repeated posts of the same latest message.
         if (parsed.body.equals(conv.lastBody)
                 && Math.abs(parsed.postTime - conv.lastPostTime) < 1500) {
             return;
@@ -88,7 +91,7 @@ public class WeChatNotificationListenerService extends NotificationListenerServi
         new CarNotificationForwarder(this).post(conv);
 
         store.addRecent(new ForwardedMessage(
-                parsed.conversationTitle, parsed.senderName,
+                parsed.app.label, parsed.conversationTitle, parsed.senderName,
                 parsed.body, parsed.postTime, parsed.group));
 
         LocalBroadcastManager.getInstance(this)
@@ -100,9 +103,9 @@ public class WeChatNotificationListenerService extends NotificationListenerServi
                 .sendBroadcast(new Intent(ACTION_STATE_CHANGED));
     }
 
-    /** Cancels WeChat's original notification (used for "mark as read"). */
-    public static void cancelWeChatNotification(String key) {
-        WeChatNotificationListenerService s = instance;
+    /** Cancels the source app's original notification (used for "mark as read"). */
+    public static void cancelSourceNotification(String key) {
+        MessageNotificationListenerService s = instance;
         if (s != null && key != null) {
             try {
                 s.cancelNotification(key);
