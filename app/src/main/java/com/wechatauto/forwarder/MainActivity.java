@@ -167,21 +167,8 @@ public class MainActivity extends AppCompatActivity {
         sb.append(mark(forwarding)).append(' ')
                 .append(getString(forwarding ? R.string.status_forwarding_on
                         : R.string.status_forwarding_off));
-        sb.append('\n').append(replyCapabilityLine());
 
         tvStatus.setText(sb.toString());
-    }
-
-    private String replyCapabilityLine() {
-        switch (Prefs.getReplyCapability(this)) {
-            case Prefs.REPLY_INLINE:
-                return "\u2705 " + getString(R.string.status_reply_inline);
-            case Prefs.REPLY_OPENS_APP:
-            case Prefs.REPLY_NONE:
-                return "\u274C " + getString(R.string.status_reply_none);
-            default:
-                return "\u2139\uFE0F " + getString(R.string.status_reply_unknown);
-        }
     }
 
     private String mark(boolean ok) {

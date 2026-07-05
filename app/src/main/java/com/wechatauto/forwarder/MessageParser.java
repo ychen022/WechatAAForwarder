@@ -1,7 +1,6 @@
 package com.wechatauto.forwarder;
 
 import android.app.Notification;
-import android.app.PendingIntent;
 import android.content.Context;
 import android.os.Bundle;
 import android.service.notification.StatusBarNotification;
@@ -18,11 +17,9 @@ import java.util.regex.Pattern;
  * Turns a raw notification from a {@link SupportedApp} into a normalized message.
  *
  * Strategy:
- *  1. Prefer the notification's own {@code MessagingStyle} (Teams and most modern
- *     messengers provide it) — this gives structured sender / body / group info.
+ *  1. Prefer the notification's own {@code MessagingStyle} when present — this gives
+ *     structured sender / body / group info.
  *  2. Fall back to title/text parsing, applying WeChat's quirks when relevant.
- *
- * It also captures the app's own inline-reply action so replies can be proxied.
  */
 public final class MessageParser {
 
@@ -44,9 +41,6 @@ public final class MessageParser {
         public boolean group;
         public long postTime;
         public String sbnKey;
-        public PendingIntent replyIntent;
-        public android.app.RemoteInput replyRemoteInput;
-        public int replyCapability = Prefs.REPLY_NONE;
     }
 
     public static Parsed parse(Context ctx, StatusBarNotification sbn) {
@@ -88,8 +82,6 @@ public final class MessageParser {
             base = p.conversationTitle;
         }
         p.conversationKey = app.name() + "|" + base;
-
-        captureReplyAction(n, p);
         return p;
     }
 
@@ -188,24 +180,5 @@ public final class MessageParser {
 
     private static String asString(CharSequence cs) {
         return cs == null ? "" : cs.toString().trim();
-    }
-
-    private static void captureReplyAction(Notification n, Parsed p) {
-        if (n.actions == null || n.actions.length == 0) {
-            p.replyCapability = Prefs.REPLY_NONE;
-            return;
-        }
-        for (Notification.Action action : n.actions) {
-            android.app.RemoteInput[] inputs = action.getRemoteInputs();
-            if (inputs != null && inputs.length > 0) {
-                p.replyIntent = action.actionIntent;
-                p.replyRemoteInput = inputs[0];
-                p.replyCapability = Prefs.REPLY_INLINE;
-                return;
-            }
-        }
-        // Actions exist, but none accept inline text input: tapping them just
-        // opens the app, so we cannot inject a reply.
-        p.replyCapability = Prefs.REPLY_OPENS_APP;
     }
 }

@@ -9,17 +9,16 @@ import android.content.Intent;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 import androidx.core.app.Person;
-import androidx.core.app.RemoteInput;
 
 /**
  * Builds and posts the Android Auto-compatible MessagingStyle notification for a
- * conversation. Android Auto reads these aloud and offers voice reply because
- * they use category=MESSAGE plus REPLY / MARK_AS_READ semantic actions.
+ * conversation. Android Auto reads these aloud because they use category=MESSAGE.
+ * The app is receive/read-only: it offers MARK_AS_READ but no reply (WeChat has no
+ * inline-reply hook to deliver text into).
  */
 public class CarNotificationForwarder {
 
     public static final String CHANNEL_ID = "wechat_car_messages";
-    public static final String REMOTE_INPUT_KEY = "key_car_reply";
 
     private final Context context;
 
@@ -66,21 +65,6 @@ public class CarNotificationForwarder {
 
         int notifId = conv.notificationId;
 
-        RemoteInput remoteInput = new RemoteInput.Builder(REMOTE_INPUT_KEY)
-                .setLabel(context.getString(R.string.action_reply))
-                .build();
-
-        NotificationCompat.Action replyAction =
-                new NotificationCompat.Action.Builder(
-                        R.drawable.ic_reply,
-                        context.getString(R.string.action_reply),
-                        buildReplyPendingIntent(notifId))
-                        .addRemoteInput(remoteInput)
-                        .setSemanticAction(NotificationCompat.Action.SEMANTIC_ACTION_REPLY)
-                        .setShowsUserInterface(false)
-                        .setAllowGeneratedReplies(true)
-                        .build();
-
         NotificationCompat.Action markReadAction =
                 new NotificationCompat.Action.Builder(
                         R.drawable.ic_check,
@@ -99,7 +83,6 @@ public class CarNotificationForwarder {
                 .setShowWhen(true)
                 .setWhen(conv.lastPostTime > 0 ? conv.lastPostTime : System.currentTimeMillis())
                 .setContentIntent(buildContentIntent())
-                .addAction(replyAction)
                 .addAction(markReadAction);
 
         NotificationManagerCompat nmc = NotificationManagerCompat.from(context);
@@ -112,15 +95,6 @@ public class CarNotificationForwarder {
 
     public void cancel(int notifId) {
         NotificationManagerCompat.from(context).cancel(notifId);
-    }
-
-    private PendingIntent buildReplyPendingIntent(int notifId) {
-        Intent intent = new Intent(context, NotificationReplyReceiver.class)
-                .setAction(NotificationReplyReceiver.ACTION_REPLY)
-                .putExtra(NotificationReplyReceiver.EXTRA_NOTIFICATION_ID, notifId);
-        // Must be mutable so the system can inject the RemoteInput reply text.
-        return PendingIntent.getBroadcast(context, notifId * 10 + 1, intent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE);
     }
 
     private PendingIntent buildMarkReadPendingIntent(int notifId) {

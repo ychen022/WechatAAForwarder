@@ -8,12 +8,8 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 /**
  * Listens to every posted notification, keeps only notifications from
- * {@link SupportedApp}s, and re-posts them as Android Auto messaging
- * notifications in real time.
- *
- * Because third-party notification listeners are isolated per Android profile,
- * install and enable this app in each profile whose apps you want relayed
- * (e.g. personal profile for WeChat, work profile for Teams).
+ * {@link SupportedApp}s (WeChat), and re-posts them as Android Auto messaging
+ * notifications in real time. Receive/read-only.
  */
 public class MessageNotificationListenerService extends NotificationListenerService {
 
@@ -71,13 +67,6 @@ public class MessageNotificationListenerService extends NotificationListenerServ
         Conversation conv = store.getOrCreate(
                 parsed.conversationKey, parsed.conversationTitle, parsed.group);
         conv.appLabel = parsed.app.label;
-
-        // Record whether the source app lets us inject a reply, for the UI.
-        Prefs.setReplyCapability(this, parsed.replyCapability);
-
-        // Always refresh the reply hooks with the latest notification.
-        conv.wechatReplyIntent = parsed.replyIntent;
-        conv.wechatReplyRemoteInput = parsed.replyRemoteInput;
         conv.wechatSbnKey = parsed.sbnKey;
 
         // De-duplicate repeated posts of the same latest message.

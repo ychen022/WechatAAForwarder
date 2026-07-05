@@ -1,7 +1,5 @@
 package com.wechatauto.forwarder;
 
-import android.app.PendingIntent;
-
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -42,10 +40,8 @@ public class Conversation {
     public String lastBody;
     public long lastPostTime;
 
-    /** Transient reply hooks captured from WeChat's own notification.
-     *  Only valid while this app's process is alive. */
-    public PendingIntent wechatReplyIntent;
-    public android.app.RemoteInput wechatReplyRemoteInput;
+    /** Key of the source app's original notification, for "mark as read" cancel.
+     *  Valid only while this app's process is alive. */
     public String wechatSbnKey;
 
     public Conversation(String key, String title, boolean group, int notificationId) {
