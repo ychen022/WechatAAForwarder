@@ -36,10 +36,16 @@ public class NotificationReplyReceiver extends BroadcastReceiver {
         if (ACTION_REPLY.equals(action)) {
             CharSequence reply = getReplyText(intent);
             if (conv != null && !TextUtils.isEmpty(reply)) {
-                sendReplyToWeChat(context, conv, reply);
-                // Reflect the sent reply so Android Auto shows it in the thread.
+                boolean delivered = sendReplyToWeChat(context, conv, reply);
                 long now = System.currentTimeMillis();
-                conv.addMessage(new Conversation.Msg(null, reply.toString(), now, true));
+                if (delivered) {
+                    // Reflect the sent reply so Android Auto shows it in the thread.
+                    conv.addMessage(new Conversation.Msg(null, reply.toString(), now, true));
+                } else {
+                    // WeChat can't accept a third-party reply: don't pretend it sent.
+                    conv.addMessage(new Conversation.Msg(
+                            null, context.getString(R.string.reply_undeliverable), now, true));
+                }
                 conv.lastPostTime = now;
                 forwarder.post(conv);
             }
@@ -70,11 +76,11 @@ public class NotificationReplyReceiver extends BroadcastReceiver {
      * process is alive (the captured PendingIntent lives in memory) and only if
      * WeChat's notification exposed a reply action.
      */
-    private void sendReplyToWeChat(Context context, Conversation conv, CharSequence reply) {
+    private boolean sendReplyToWeChat(Context context, Conversation conv, CharSequence reply) {
         PendingIntent pi = conv.wechatReplyIntent;
         android.app.RemoteInput ri = conv.wechatReplyRemoteInput;
         if (pi == null || ri == null) {
-            return;
+            return false;
         }
         try {
             Intent fillIn = new Intent();
@@ -83,8 +89,10 @@ public class NotificationReplyReceiver extends BroadcastReceiver {
             android.app.RemoteInput.addResultsToIntent(
                     new android.app.RemoteInput[]{ri}, fillIn, bundle);
             pi.send(context, 0, fillIn);
+            return true;
         } catch (PendingIntent.CanceledException ignored) {
             // WeChat's notification/action is no longer valid.
+            return false;
         }
     }
 }

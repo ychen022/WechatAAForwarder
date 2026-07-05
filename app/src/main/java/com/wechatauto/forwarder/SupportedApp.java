@@ -7,8 +7,7 @@ import androidx.annotation.Nullable;
  * Add a new entry here to support another app.
  */
 public enum SupportedApp {
-    WECHAT("com.tencent.mm", "微信", true),
-    TEAMS("com.microsoft.teams", "Teams", false);
+    WECHAT("com.tencent.mm", "微信", true);
 
     /** Android package of the source app. */
     public final String packageName;

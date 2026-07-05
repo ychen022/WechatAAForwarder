@@ -10,7 +10,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.widget.Button;
-import android.widget.CheckBox;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -83,16 +82,6 @@ public class MainActivity extends AppCompatActivity {
         swGroupSplit.setChecked(Prefs.isGroupSplitEnabled(this));
         swGroupSplit.setOnCheckedChangeListener((b, checked) ->
                 Prefs.setGroupSplitEnabled(this, checked));
-
-        CheckBox cbWeChat = findViewById(R.id.cbWeChat);
-        cbWeChat.setChecked(Prefs.isAppEnabled(this, SupportedApp.WECHAT));
-        cbWeChat.setOnCheckedChangeListener((b, checked) ->
-                Prefs.setAppEnabled(this, SupportedApp.WECHAT, checked));
-
-        CheckBox cbTeams = findViewById(R.id.cbTeams);
-        cbTeams.setChecked(Prefs.isAppEnabled(this, SupportedApp.TEAMS));
-        cbTeams.setOnCheckedChangeListener((b, checked) ->
-                Prefs.setAppEnabled(this, SupportedApp.TEAMS, checked));
 
         maybeRequestPostNotifications();
     }
@@ -178,8 +167,21 @@ public class MainActivity extends AppCompatActivity {
         sb.append(mark(forwarding)).append(' ')
                 .append(getString(forwarding ? R.string.status_forwarding_on
                         : R.string.status_forwarding_off));
+        sb.append('\n').append(replyCapabilityLine());
 
         tvStatus.setText(sb.toString());
+    }
+
+    private String replyCapabilityLine() {
+        switch (Prefs.getReplyCapability(this)) {
+            case Prefs.REPLY_INLINE:
+                return "\u2705 " + getString(R.string.status_reply_inline);
+            case Prefs.REPLY_OPENS_APP:
+            case Prefs.REPLY_NONE:
+                return "\u274C " + getString(R.string.status_reply_none);
+            default:
+                return "\u2139\uFE0F " + getString(R.string.status_reply_unknown);
+        }
     }
 
     private String mark(boolean ok) {

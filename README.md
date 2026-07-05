@@ -1,23 +1,40 @@
-# WeChat Auto — 微信 / Teams 消息转发到 Android Auto
+# WeChat Auto — 微信消息转发到 Android Auto
 
-WeChat (微信) and Microsoft Teams don't integrate with Android Auto, so their
-messages never show up on the car screen or get read aloud. **WeChat Auto** bridges
-that gap: it reads those apps' notifications on your phone in real time and
-re-publishes them as Android Auto‑compatible *messaging* notifications, so incoming
-messages are **displayed and read aloud** in Android Auto — and you can **reply by
-voice**.
+WeChat (微信) does not integrate with Android Auto, so its messages never show up on
+the car screen or get read aloud. **WeChat Auto** bridges that gap: it reads WeChat
+notifications on your phone in real time and re-publishes them as Android
+Auto‑compatible *messaging* notifications, so incoming messages are **displayed and
+read aloud** in Android Auto.
 
-> This app does not modify WeChat/Teams and does not need root. It only relays the
-> notifications those apps already post. It has **no internet permission**.
+> This app does not modify WeChat and does not need root. It only relays the
+> notifications WeChat already posts. It has **no internet permission**.
 
-## Supported apps
-| App | Package | Typical profile |
-|-----|---------|-----------------|
-| WeChat 微信 | `com.tencent.mm` | Personal |
-| Microsoft Teams | `com.microsoft.teams` | Work |
+## Can I reply to WeChat from the car? (Read this)
+**Receiving** WeChat messages in Android Auto works well. **Replying**, however, runs
+into two hard platform limits — neither is fixable by this app:
 
-Each source can be toggled independently in the app. Adding another messenger is a
-one-line change in `SupportedApp`.
+1. **Android Auto never shows custom app UI on the car screen.** Third‑party messaging
+   apps can only use notifications + the system's built‑in voice reply; you cannot pop
+   open your own Activity (with buttons / text boxes) on the car display. So a custom
+   "record voice → edit text → send" screen on the car is not possible by design
+   (driver‑distraction rules).
+2. **WeChat exposes no inline‑reply hook.** Unlike WhatsApp/Telegram/Signal, WeChat's
+   Android notifications do **not** provide a `RemoteInput` direct‑reply action, and
+   personal WeChat has **no public send API**. So even though Android Auto can capture
+   your spoken reply for us, there is no supported way to inject that text back into
+   WeChat.
+
+What this app *does* do about replies:
+- It posts its **own** reply action, so Android Auto's built‑in Assistant still offers
+  hands‑free voice reply and hands us the recognized text — **no custom UI needed**.
+- It then tries to deliver that text into WeChat via WeChat's own inline‑reply action
+  **if one exists**. The **status panel shows "微信内联回复: 支持/不支持"** so you can
+  verify on *your* WeChat build. On current WeChat it is "不支持", and the app clearly
+  marks such replies as *undeliverable* instead of pretending they were sent.
+- The only remaining route to actually send would be an **AccessibilityService** that
+  drives WeChat's UI (open chat, type, tap send). It's fragile, can't run on the car
+  screen, is unsafe while driving, and is ToS‑questionable — so it is intentionally
+  **not** implemented. Ask if you want to explore it as a phone‑only, parked‑use tool.
 
 ---
 
@@ -37,63 +54,31 @@ WeChat's behalf:
 
 ```
 ┌───────────────┐  posts   ┌──────────────────────────────────┐  re-post as     ┌──────────────┐
-│ WeChat / Teams│ ───────▶ │ MessageNotificationListenerService │ ─ MessagingStyle ▶ │ Android Auto │
-│ (personal/work)│  notif  │   → parse → forward                │  (reply/markread)│  read + show │
+│    WeChat     │ ───────▶ │ MessageNotificationListenerService │ ─ MessagingStyle ▶ │ Android Auto │
+│(com.tencent.mm)│  notif  │   → parse → forward                │  (reply/markread)│  read + show │
 └───────────────┘          └──────────────────────────────────┘                  └──────────────┘
-                                        ▲  reply text (voice/typed)                     │
+                                        ▲  reply text (voice, best-effort)              │
                                         └───────────────────────────────────────────────┘
 ```
 
 ### Components
 | Class | Responsibility |
 |-------|----------------|
-| `SupportedApp` | Registry of relayed apps (WeChat, Teams) + per-app parsing flags. |
+| `SupportedApp` | Registry of relayed apps (currently WeChat) + parsing flags. Adding another app is one line. |
 | `MessageNotificationListenerService` | Reads supported apps' notifications live (`onNotificationPosted`) and forwards them. |
-| `MessageParser` | Prefers the notification's own `MessagingStyle` (Teams and most modern messengers); falls back to title/text parsing with WeChat's quirks (`[n条]` counter, `sender: body` group split). Filters ongoing/summary/call notifications and captures the app's inline‑reply action. |
-| `CarNotificationForwarder` | Builds & posts the `MessagingStyle` car notification (category `MESSAGE`, `SEMANTIC_ACTION_REPLY` + `SEMANTIC_ACTION_MARK_AS_READ`), prefixing the conversation title with the source app. |
-| `NotificationReplyReceiver` | Handles the Auto reply (proxies your text back into the source app's reply `RemoteInput`) and *mark as read* (dismisses the original + relayed notifications). |
+| `MessageParser` | Prefers the notification's own `MessagingStyle`; falls back to title/text parsing with WeChat's quirks (`[n条]` counter, `sender: body` group split). Filters ongoing/summary/call notifications and detects the app's reply capability. |
+| `CarNotificationForwarder` | Builds & posts the `MessagingStyle` car notification (category `MESSAGE`, `SEMANTIC_ACTION_REPLY` + `SEMANTIC_ACTION_MARK_AS_READ`). |
+| `NotificationReplyReceiver` | Handles the Auto reply (proxies your text into WeChat's reply `RemoteInput` **if it exists**) and *mark as read*. Marks replies undeliverable when WeChat provides no reply hook. |
 | `ConversationStore` / `Conversation` | Per‑conversation state, de‑duplication, and the on‑screen history. |
-| `MainActivity` | Enables notification access, requests `POST_NOTIFICATIONS`, per-app toggles, a **test message** button, and a live status panel. |
-
----
-
-## ⚠️ Work profile & multiple Android profiles (important for Teams)
-Android **isolates notifications between the personal profile and the work
-profile**. A third‑party `NotificationListenerService` only sees notifications from
-apps **in its own profile** — a personal‑profile listener cannot read work‑profile
-Teams notifications, and vice versa.
-
-So if WeChat is personal and Teams is in your work profile:
-
-1. **Install and enable WeChat Auto in *both* profiles.** In your work profile's app
-   list, install the same APK; grant it notification access there too. (If your work
-   profile is managed by Intune/MDM, you may need IT to allow installing it, or push
-   it as a managed app.)
-2. The **personal** instance forwards WeChat; the **work** instance forwards Teams.
-   Turn off the unused source in each instance via the per‑app toggles.
-3. Each instance re‑posts the message **within its own profile**, so the only
-   cross‑profile hop is reading the original notification — which the per‑profile
-   listener already handles.
-
-**Android Auto note:** Android Auto reads personal‑profile messaging notifications
-reliably. Whether it also surfaces the **work‑profile** instance's notifications
-depends on your Android Auto version's managed‑profile support. If the work instance's
-messages don't appear in the car:
-- Make sure the work profile isn't paused, and its notifications are allowed to show.
-- As a future enhancement, a *connected‑apps* bridge (`INTERACT_ACROSS_PROFILES`)
-  could let the work instance hand messages to the personal instance so Auto always
-  sees a personal‑profile notification — this requires your IT policy to permit
-  "connected work & personal apps."
-
-If both apps are in the **same** profile, a single instance handles everything.
+| `MainActivity` | Enables notification access, requests `POST_NOTIFICATIONS`, toggles, a **test message** button, and a live status panel (incl. detected reply capability). |
 
 ---
 
 ## Requirements
 - Android 8.0 (API 26) or newer.
 - Android Auto set up on the phone + a head unit (or the "Desktop Head Unit" for testing).
-- The source app (WeChat/Teams) installed, with notifications enabled and message
-  content shown on the lock/notification screen.
+- WeChat installed, with notifications enabled and message content shown on the
+  lock/notification screen.
 
 ## Build
 Open the project in Android Studio (Ladybug or newer) and press **Run**, or from a
@@ -111,43 +96,41 @@ Toolchain: AGP 8.7.2 · Gradle 8.9 · compileSdk 35 · minSdk 26 · Java 17.
 1. Launch **WeChat Auto** and tap **开启通知使用权 (Open notification access)**.
    Enable "WeChat Auto" in the system *Notification access* list.
 2. Grant the **通知发送权限 (POST_NOTIFICATIONS)** prompt (Android 13+).
-3. Make sure **转发 (Forwarding)** is on, and enable the sources you want under
-   **转发来源 (Sources)** — 微信 and/or Microsoft Teams.
+3. Make sure **转发 (Forwarding)** is on.
 4. Tap **发送测试消息 (Send test message)** and connect to Android Auto — you should
    see/hear the test message on the car screen. This confirms the pipeline before a
    real message arrives.
 5. Keep WeChat Auto installed; the listener runs in the background automatically.
-6. For Teams in a work profile, repeat these steps **inside the work profile** (see
-   the *Work profile* section above) and enable only the Teams source there.
 
 The status panel shows, at a glance, whether: notification access is granted, the
-listener is connected, `POST_NOTIFICATIONS` is granted, and forwarding is on.
+listener is connected, `POST_NOTIFICATIONS` is granted, forwarding is on, and whether
+WeChat exposes an inline‑reply hook.
 
 ## Using it
 - When a message arrives, Android Auto shows it and (for new messages) reads it
   aloud. Tap the message or use the Assistant to **hear**, **reply**, or
-  **mark as read**. The car title is prefixed with the source app (e.g. `微信 · 张三`,
-  `Teams · #general`).
-- **Reply** is proxied straight into the source app's own inline‑reply action, so your
-  spoken reply is sent as a normal message — best‑effort (see limitations).
-- **拆分群消息发送者 (Split group sender)**: WeChat‑only; when on, group messages
-  formatted as `发送者: 内容` are shown with the sender as the speaker and the group as
-  the conversation title (nicer TTS). Turn off if your contacts' messages get split
-  incorrectly. (Teams already provides structured sender info via MessagingStyle.)
+  **mark as read**.
+- **Reply** relies on Android Auto's built‑in voice capture (no custom UI). The app
+  then tries to deliver the text into WeChat's own reply action *if it exists* — on
+  current WeChat it doesn't, so such replies are marked *undeliverable* (see
+  "Can I reply" above). Reading and mark‑as‑read always work.
+- **拆分群消息发送者 (Split group sender)**: when on, group messages formatted as
+  `发送者: 内容` are shown with the sender as the speaker and the group as the
+  conversation title (nicer TTS). Turn off if your contacts' messages get split
+  incorrectly.
 
 ---
 
 ## Limitations & notes
-- **Message content must be visible in the notification.** If the source app hides
-  message text on the lock screen (e.g. "你收到了一条消息"), only that placeholder can
-  be forwarded. Enable message previews in the app's notification settings.
-- **Reply back is best‑effort.** It works only while this app's process is alive and
-  only if the source app's notification exposed an inline‑reply action (WeChat and
-  Teams usually do). If it can't reply, marking as read still works. Text only — no
-  images/voice/stickers. Replying to a *work‑profile* app from a *personal‑profile*
-  instance may be blocked by profile isolation.
-- **Group sender detection is heuristic** for WeChat (`发送者: 内容`); it can
-  occasionally mis‑split a 1:1 message that contains a colon — toggle it off if needed.
+- **Message content must be visible in the notification.** If WeChat hides message
+  text on the lock screen (e.g. "你收到了一条消息"), only that placeholder can be
+  forwarded. Enable message previews in WeChat's notification settings.
+- **Replying into WeChat is not supported by WeChat.** WeChat provides no inline‑reply
+  `RemoteInput` and no send API, so voice replies captured by Android Auto cannot be
+  delivered; the app marks them undeliverable rather than dropping them silently. See
+  the "Can I reply to WeChat from the car?" section.
+- **Group sender detection is heuristic** (`发送者: 内容`); it can occasionally
+  mis‑split a 1:1 message that contains a colon — toggle it off if needed.
 - Rapid duplicate posts of the same latest message are de‑duplicated within ~1.5s.
 - **Privacy:** everything is processed on‑device. The app has **no internet
   permission** and sends nothing anywhere; it only re‑posts local notifications.
@@ -155,11 +138,8 @@ listener is connected, `POST_NOTIFICATIONS` is granted, and forwarding is on.
   battery optimization if forwarding stops after a while.
 
 ## Troubleshooting
-- *Nothing appears in Android Auto:* verify all four status items are ✅ and the source
-  is enabled, then use **Send test message** while connected. If the test works but a
-  real app doesn't, check that app's own notification settings (previews enabled, not
-  silenced).
-- *Teams messages missing:* confirm WeChat Auto is installed **and** has notification
-  access **inside the work profile**, and that the Teams source is enabled there.
+- *Nothing appears in Android Auto:* verify the status items are ✅, then use
+  **Send test message** while connected. If the test works but WeChat doesn't, check
+  WeChat's own notification settings (previews enabled, not silenced).
 - *Listener shows disconnected:* re‑toggle notification access for WeChat Auto in
   system settings; some devices require toggling it off/on after an update.

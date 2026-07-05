@@ -46,6 +46,7 @@ public final class MessageParser {
         public String sbnKey;
         public PendingIntent replyIntent;
         public android.app.RemoteInput replyRemoteInput;
+        public int replyCapability = Prefs.REPLY_NONE;
     }
 
     public static Parsed parse(Context ctx, StatusBarNotification sbn) {
@@ -190,7 +191,8 @@ public final class MessageParser {
     }
 
     private static void captureReplyAction(Notification n, Parsed p) {
-        if (n.actions == null) {
+        if (n.actions == null || n.actions.length == 0) {
+            p.replyCapability = Prefs.REPLY_NONE;
             return;
         }
         for (Notification.Action action : n.actions) {
@@ -198,8 +200,12 @@ public final class MessageParser {
             if (inputs != null && inputs.length > 0) {
                 p.replyIntent = action.actionIntent;
                 p.replyRemoteInput = inputs[0];
+                p.replyCapability = Prefs.REPLY_INLINE;
                 return;
             }
         }
+        // Actions exist, but none accept inline text input: tapping them just
+        // opens the app, so we cannot inject a reply.
+        p.replyCapability = Prefs.REPLY_OPENS_APP;
     }
 }

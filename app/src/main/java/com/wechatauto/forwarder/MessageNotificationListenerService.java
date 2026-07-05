@@ -72,6 +72,9 @@ public class MessageNotificationListenerService extends NotificationListenerServ
                 parsed.conversationKey, parsed.conversationTitle, parsed.group);
         conv.appLabel = parsed.app.label;
 
+        // Record whether the source app lets us inject a reply, for the UI.
+        Prefs.setReplyCapability(this, parsed.replyCapability);
+
         // Always refresh the reply hooks with the latest notification.
         conv.wechatReplyIntent = parsed.replyIntent;
         conv.wechatReplyRemoteInput = parsed.replyRemoteInput;
