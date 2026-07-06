@@ -9,6 +9,18 @@ read aloud** in Android Auto.
 > This app does not modify WeChat and does not need root. It only relays the
 > notifications WeChat already posts. It has **no internet permission**.
 
+## Download & install (prebuilt APK)
+Grab the ready-to-install APK from the repo root:
+**[`WechatAAForwarder-v1.0.0.apk`](WechatAAForwarder-v1.0.0.apk)** (min Android 8.0).
+
+1. On your phone, download the APK (tap **Raw** / the download button on GitHub).
+2. Open it and allow "install from unknown sources" if prompted.
+3. Follow **First‑time setup on the phone** below to grant notification access.
+
+The APK is signed with the project's own release key, so it installs directly. It's a
+sideload build (not on the Play Store), so your phone will show the usual
+unknown‑developer warning — that's expected.
+
 ## Can I reply to WeChat from the car?
 Short answer: **you can speak a reply, but it can't reach WeChat** — so in practice this
 is a **receive + read‑aloud** app. Two hard platform facts, neither fixable here:
