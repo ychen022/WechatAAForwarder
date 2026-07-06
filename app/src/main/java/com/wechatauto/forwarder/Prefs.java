@@ -9,6 +9,7 @@ public final class Prefs {
     private static final String KEY_FORWARDING = "forwarding_enabled";
     private static final String KEY_GROUP_SPLIT = "group_split_enabled";
     private static final String KEY_APP_PREFIX = "app_enabled_";
+    private static final String KEY_CAR_GATE = "forward_only_when_car_connected";
 
     private Prefs() {}
 
@@ -35,5 +36,14 @@ public final class Prefs {
 
     public static void setGroupSplitEnabled(Context c, boolean v) {
         sp(c).edit().putBoolean(KEY_GROUP_SPLIT, v).apply();
+    }
+
+    /** When true (default), only forward while connected to Android Auto / a car. */
+    public static boolean isForwardOnlyWhenCarConnected(Context c) {
+        return sp(c).getBoolean(KEY_CAR_GATE, true);
+    }
+
+    public static void setForwardOnlyWhenCarConnected(Context c, boolean v) {
+        sp(c).edit().putBoolean(KEY_CAR_GATE, v).apply();
     }
 }

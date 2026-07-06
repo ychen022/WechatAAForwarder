@@ -63,6 +63,12 @@ public class MessageNotificationListenerService extends NotificationListenerServ
             return;
         }
 
+        // Gate: only relay while connected to Android Auto / a car head unit.
+        if (Prefs.isForwardOnlyWhenCarConnected(this)
+                && !CarConnectionHelper.isCarConnected(this)) {
+            return;
+        }
+
         ConversationStore store = ConversationStore.get(this);
         Conversation conv = store.getOrCreate(
                 parsed.conversationKey, parsed.conversationTitle, parsed.group);

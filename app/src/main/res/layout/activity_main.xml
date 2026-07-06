@@ -37,6 +37,14 @@
         android:textSize="15sp" />
 
     <androidx.appcompat.widget.SwitchCompat
+        android:id="@+id/swCarGate"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="48dp"
+        android:text="@string/switch_car_gate"
+        android:textSize="15sp" />
+
+    <androidx.appcompat.widget.SwitchCompat
         android:id="@+id/swGroupSplit"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

@@ -64,7 +64,8 @@ WeChat's behalf:
 | Class | Responsibility |
 |-------|----------------|
 | `SupportedApp` | Registry of relayed apps (currently WeChat) + parsing flags. Adding another app is one line. |
-| `MessageNotificationListenerService` | Reads supported apps' notifications live (`onNotificationPosted`) and forwards them. |
+| `CarConnectionHelper` | Detects Android Auto / car connection via the `androidx.car.app.connection` provider (no Car App Library dependency). Used to gate forwarding. |
+| `MessageNotificationListenerService` | Reads supported apps' notifications live (`onNotificationPosted`) and forwards them (only while a car is connected, when gating is on). |
 | `MessageParser` | Prefers the notification's own `MessagingStyle`; falls back to title/text parsing with WeChat's quirks (`[n条]` counter, `sender: body` group split). Filters ongoing/summary/call notifications; captures WeChat's reply hook if any. |
 | `CarNotificationForwarder` | Builds & posts the `MessagingStyle` car notification (category `MESSAGE`, `SEMANTIC_ACTION_REPLY` + `SEMANTIC_ACTION_MARK_AS_READ` — both required for Auto to surface it). |
 | `NotificationReplyReceiver` | Handles *reply* (best‑effort into WeChat; marked undeliverable when WeChat has no reply hook) and *mark as read* (dismisses WeChat's original notification and the relayed one). |
@@ -102,9 +103,20 @@ Toolchain: AGP 8.7.2 · Gradle 8.9 · compileSdk 35 · minSdk 26 · Java 17.
 5. Keep WeChat Auto installed; the listener runs in the background automatically.
 
 The status panel shows, at a glance, whether: notification access is granted, the
-listener is connected, `POST_NOTIFICATIONS` is granted, and forwarding is on.
+listener is connected, `POST_NOTIFICATIONS` is granted, forwarding is on, and whether
+Android Auto is currently connected.
 
 ## Using it
+- **Only forwards while Android Auto is connected** (default). When your phone isn't
+  projecting to a car, WeChat messages are left alone — no duplicate relayed
+  notification on the phone. The moment Android Auto connects, new WeChat messages start
+  being relayed again. Toggle **仅在连接 Android Auto 时转发** off to forward all the time
+  (the old behavior).
+  - Detection uses the official `androidx.car.app.connection` provider (the same signal
+    the Car App Library's `CarConnection` uses). The status panel shows the live
+    **Android Auto: 已连接/未连接** state so you can confirm it works in your car.
+  - Note: only messages that arrive **while connected** are relayed; messages received
+    before you connected are not retroactively pushed.
 - When a message arrives, Android Auto shows it and (for new messages) reads it
   aloud. Use **Mark as read** to clear it from the car (this also dismisses WeChat's
   notification on the phone).

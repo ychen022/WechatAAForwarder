@@ -15,6 +15,7 @@
     <string name="status_title">状态</string>
     <string name="btn_notification_access">开启通知使用权</string>
     <string name="switch_forwarding">转发微信消息到 Android Auto</string>
+    <string name="switch_car_gate">仅在连接 Android Auto 时转发</string>
     <string name="switch_group_split">拆分群消息的发送者姓名</string>
     <string name="btn_test">发送测试消息</string>
     <string name="recent_title">最近转发的消息</string>
@@ -27,6 +28,8 @@
     <string name="status_listener_disconnected">监听服务：未连接</string>
     <string name="status_forwarding_on">转发：已开启</string>
     <string name="status_forwarding_off">转发：已关闭</string>
+    <string name="status_car_connected">Android Auto：已连接</string>
+    <string name="status_car_disconnected">Android Auto：未连接（已开启门控时不转发）</string>
     <string name="status_post_granted">通知发送权限：已授予</string>
     <string name="status_post_denied">通知发送权限：未授予（Android 13+ 需要）</string>
 

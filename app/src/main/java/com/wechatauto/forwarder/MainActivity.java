@@ -30,6 +30,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView tvStatus;
     private TextView tvEmpty;
     private SwitchCompat swForwarding;
+    private SwitchCompat swCarGate;
     private SwitchCompat swGroupSplit;
     private RecyclerView rvMessages;
     private RecentMessagesAdapter adapter;
@@ -46,6 +47,14 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    /** Refreshes the status when Android Auto connects/disconnects while UI is open. */
+    private final BroadcastReceiver carConnectionReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            updateStatus();
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -54,6 +63,7 @@ public class MainActivity extends AppCompatActivity {
         tvStatus = findViewById(R.id.tvStatus);
         tvEmpty = findViewById(R.id.tvEmpty);
         swForwarding = findViewById(R.id.swForwarding);
+        swCarGate = findViewById(R.id.swCarGate);
         swGroupSplit = findViewById(R.id.swGroupSplit);
         rvMessages = findViewById(R.id.rvMessages);
 
@@ -79,6 +89,12 @@ public class MainActivity extends AppCompatActivity {
             updateStatus();
         });
 
+        swCarGate.setChecked(Prefs.isForwardOnlyWhenCarConnected(this));
+        swCarGate.setOnCheckedChangeListener((b, checked) -> {
+            Prefs.setForwardOnlyWhenCarConnected(this, checked);
+            updateStatus();
+        });
+
         swGroupSplit.setChecked(Prefs.isGroupSplitEnabled(this));
         swGroupSplit.setOnCheckedChangeListener((b, checked) ->
                 Prefs.setGroupSplitEnabled(this, checked));
@@ -93,6 +109,9 @@ public class MainActivity extends AppCompatActivity {
         filter.addAction(MessageNotificationListenerService.ACTION_STATE_CHANGED);
         filter.addAction(MessageNotificationListenerService.ACTION_MESSAGE_FORWARDED);
         LocalBroadcastManager.getInstance(this).registerReceiver(updateReceiver, filter);
+        ContextCompat.registerReceiver(this, carConnectionReceiver,
+                new IntentFilter(CarConnectionHelper.ACTION_CAR_CONNECTION_UPDATED),
+                ContextCompat.RECEIVER_EXPORTED);
         updateStatus();
         refreshList();
     }
@@ -101,6 +120,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
         LocalBroadcastManager.getInstance(this).unregisterReceiver(updateReceiver);
+        unregisterReceiver(carConnectionReceiver);
     }
 
     private void openNotificationAccessSettings() {
@@ -153,6 +173,7 @@ public class MainActivity extends AppCompatActivity {
         boolean listener = MessageNotificationListenerService.isConnected();
         boolean forwarding = Prefs.isForwardingEnabled(this);
         boolean post = hasPostNotificationsPermission();
+        boolean carConnected = CarConnectionHelper.isCarConnected(this);
 
         StringBuilder sb = new StringBuilder();
         sb.append(mark(access)).append(' ')
@@ -166,7 +187,10 @@ public class MainActivity extends AppCompatActivity {
                         : R.string.status_post_denied)).append('\n');
         sb.append(mark(forwarding)).append(' ')
                 .append(getString(forwarding ? R.string.status_forwarding_on
-                        : R.string.status_forwarding_off));
+                        : R.string.status_forwarding_off)).append('\n');
+        sb.append(mark(carConnected)).append(' ')
+                .append(getString(carConnected ? R.string.status_car_connected
+                        : R.string.status_car_disconnected));
 
         tvStatus.setText(sb.toString());
     }
