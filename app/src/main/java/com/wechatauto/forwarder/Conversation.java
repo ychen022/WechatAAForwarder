@@ -44,6 +44,11 @@ public class Conversation {
      *  Valid only while this app's process is alive. */
     public String wechatSbnKey;
 
+    /** WeChat's own inline-reply hooks, if its notification exposed any. Used for
+     *  best-effort reply delivery. Valid only while this process is alive. */
+    public android.app.PendingIntent wechatReplyIntent;
+    public android.app.RemoteInput wechatReplyRemoteInput;
+
     public Conversation(String key, String title, boolean group, int notificationId) {
         this.key = key;
         this.title = title;

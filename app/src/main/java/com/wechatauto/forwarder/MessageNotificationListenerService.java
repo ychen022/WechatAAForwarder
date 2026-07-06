@@ -68,6 +68,8 @@ public class MessageNotificationListenerService extends NotificationListenerServ
                 parsed.conversationKey, parsed.conversationTitle, parsed.group);
         conv.appLabel = parsed.app.label;
         conv.wechatSbnKey = parsed.sbnKey;
+        conv.wechatReplyIntent = parsed.replyIntent;
+        conv.wechatReplyRemoteInput = parsed.replyRemoteInput;
 
         // De-duplicate repeated posts of the same latest message.
         if (parsed.body.equals(conv.lastBody)

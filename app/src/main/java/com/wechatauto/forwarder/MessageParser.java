@@ -41,6 +41,8 @@ public final class MessageParser {
         public boolean group;
         public long postTime;
         public String sbnKey;
+        public android.app.PendingIntent replyIntent;
+        public android.app.RemoteInput replyRemoteInput;
     }
 
     public static Parsed parse(Context ctx, StatusBarNotification sbn) {
@@ -82,7 +84,23 @@ public final class MessageParser {
             base = p.conversationTitle;
         }
         p.conversationKey = app.name() + "|" + base;
+        captureReplyAction(n, p);
         return p;
+    }
+
+    /** Captures WeChat's own inline-reply action, if present, for best-effort reply. */
+    private static void captureReplyAction(Notification n, Parsed p) {
+        if (n.actions == null) {
+            return;
+        }
+        for (Notification.Action action : n.actions) {
+            android.app.RemoteInput[] inputs = action.getRemoteInputs();
+            if (inputs != null && inputs.length > 0) {
+                p.replyIntent = action.actionIntent;
+                p.replyRemoteInput = inputs[0];
+                return;
+            }
+        }
     }
 
     /** Uses the notification's own MessagingStyle when present. */
